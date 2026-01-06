@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/lib/ThemeContext";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -8,8 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "GCP Security Dashboard",
-  description: "Cloud Security Posture Overview for GCP Infrastructure",
+  title: "GCP Security Dashboard | Security Health Analytics",
+  description: "Cloud Security Posture Overview for GCP Infrastructure - SCC Compatible",
   icons: {
     icon: "/favicon.ico",
   },
@@ -21,9 +22,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
-        {children}
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

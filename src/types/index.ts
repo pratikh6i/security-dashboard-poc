@@ -1,55 +1,37 @@
-// Type definitions for GCP Security Dashboard
+// SCC-Compatible Types for GCP Security Dashboard
 
-export interface ResourceData {
-  'Resource Type': string;
-  'Project ID': string;
-  'Instance Name': string;
-  'Zone': string;
-  'Status': string;
-  'Machine Type': string;
-  'Creation Time': string;
-  'Last Start Time': string;
-  'Deletion Protection': string;
-  'Internal IP': string;
-  'External IP': string;
-  'Network': string;
-  'Subnet': string;
-  'Network Interfaces': string;
-  'Boot Disk Size (GB)': string;
-  'External Disks': string;
-  'OS Details (Boot Disk)': string;
-  'OS Running (Agent)': string;
-  'OS Agent Installed': string;
-  'Service Account': string;
-  'API Access Scopes': string;
-  'Tags': string;
-  'Labels': string;
-  'Startup Script': string;
-  'Shutdown Script': string;
-  'Shielded VM': string;
-  'Confidential VM': string;
-  'SSH Keys': string;
-  'IP Forwarding': string;
-  [key: string]: string; // Allow additional fields for future resource types
+export interface Finding {
+  finding_name: string;
+  finding_category: string;
+  finding_severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO';
+  finding_state: 'ACTIVE' | 'INACTIVE';
+  finding_class: 'VULNERABILITY' | 'MISCONFIGURATION' | 'OBSERVATION';
+  resource_name: string;
+  resource_type: string;
+  resource_project: string;
+  resource_location: string;
+  finding_description: string;
+  remediation: string;
+  compliance: string;
+  scan_time: string;
+  [key: string]: string; // Index signature for dynamic access
 }
 
 export interface SecurityMetrics {
-  totalResources: number;
-  runningInstances: number;
-  stoppedInstances: number;
-  securityScore: number;
-  issues: SecurityIssue[];
+  totalFindings: number;
+  bySeverity: {
+    CRITICAL: number;
+    HIGH: number;
+    MEDIUM: number;
+    LOW: number;
+    INFO: number;
+  };
+  byResourceType: Record<string, number>;
+  byCategory: Record<string, number>;
   byProject: Record<string, number>;
-  byStatus: Record<string, number>;
-  byZone: Record<string, number>;
-}
-
-export interface SecurityIssue {
-  severity: 'critical' | 'high' | 'medium' | 'low';
-  title: string;
-  count: number;
-  description: string;
-  affectedResources: string[];
+  byLocation: Record<string, number>;
+  securityScore: number;
+  topCategories: Array<{ name: string; count: number; severity: string }>;
 }
 
 export interface ChartData {
@@ -60,7 +42,34 @@ export interface ChartData {
 }
 
 export interface ParseError {
-  type: string;
+  type: 'warning' | 'error';
   message: string;
   row?: number;
 }
+
+export interface CSVParseResult {
+  data: Finding[];
+  errors: ParseError[];
+}
+
+// Theme types
+export type Theme = 'light' | 'dark';
+
+// Severity colors
+export const SEVERITY_COLORS = {
+  CRITICAL: '#dc2626',
+  HIGH: '#ea580c',
+  MEDIUM: '#ca8a04',
+  LOW: '#2563eb',
+  INFO: '#6b7280'
+} as const;
+
+// Resource type icons/colors
+export const RESOURCE_TYPE_COLORS: Record<string, string> = {
+  'Instance': '#4285f4',
+  'Cluster': '#34a853',
+  'Bucket': '#fbbc04',
+  'Firewall': '#ea4335',
+  'SqlInstance': '#673ab7',
+  'Project': '#9c27b0'
+};

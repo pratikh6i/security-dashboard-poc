@@ -1,17 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f9fafb;
+  --foreground: #111827;
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --background: #030712;
+  --foreground: #f9fafb;
 }
 
 html {
   scroll-behavior: smooth;
+  color-scheme: light dark;
 }
 
 body {
@@ -30,25 +31,27 @@ body {
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
+.dark ::-webkit-scrollbar-thumb {
   background: #374151;
   border-radius: 4px;
 }
 
-::-webkit-scrollbar-thumb:hover {
+.dark ::-webkit-scrollbar-thumb:hover {
   background: #4b5563;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
 }
 
 /* Table scrollbar */
 .overflow-x-auto::-webkit-scrollbar {
   height: 6px;
-}
-
-/* Smooth animations */
-* {
-  transition-property: background-color, border-color, color, fill, stroke;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
 }
 
 /* Focus styles */
@@ -62,4 +65,54 @@ select:focus-visible {
 /* Recharts tooltip fix */
 .recharts-tooltip-wrapper {
   z-index: 100 !important;
+}
+
+/* Smooth transitions for theme change */
+html.transitioning,
+html.transitioning *,
+html.transitioning *:before,
+html.transitioning *:after {
+  transition: background 0.3s ease-in-out, color 0.3s ease-in-out, border-color 0.3s ease-in-out !important;
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15);
+}
+
+.dark .card-hover:hover {
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+}
+
+/* Glassmorphism effects */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.dark .glass {
+  background: rgba(17, 24, 39, 0.7);
+}
+
+/* Severity badge animations */
+@keyframes pulse-critical {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.severity-critical {
+  animation: pulse-critical 2s ease-in-out infinite;
 }
