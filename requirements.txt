@@ -1,16 +1,7 @@
-# GCP Security Health Analytics Scanner
-# Requirements for multi-resource security scanning
-
-# GCP API Libraries
-google-cloud-compute>=1.15.0
+google-cloud-compute>=1.14.0
 google-cloud-container>=2.32.0
 google-cloud-storage>=2.14.0
-google-cloud-resource-manager>=1.11.0
-google-cloud-sql-admin>=0.1.0
-google-api-core>=2.15.0
-
-# Progress bar
+google-cloud-resource-manager>=1.12.0
+google-api-python-client>=2.100.0
+google-auth>=2.23.0
 tqdm>=4.66.0
-
-# CLI
-argparse

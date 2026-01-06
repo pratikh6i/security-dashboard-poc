@@ -52,13 +52,15 @@ try:
     from google.cloud import container_v1
     from google.cloud import storage
     from google.cloud import resourcemanager_v3
-    from google.cloud import sqladmin_v1beta4
     from google.api_core import exceptions as google_exceptions
+    from googleapiclient import discovery
+    from google.auth import default as google_auth_default
     GCP_LIBS_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     GCP_LIBS_AVAILABLE = False
     print("ERROR: Required GCP libraries not installed.")
-    print("Run: pip install google-cloud-compute google-cloud-container google-cloud-storage google-cloud-resource-manager google-cloud-sql-admin")
+    print("Run: pip install google-cloud-compute google-cloud-container google-cloud-storage google-cloud-resource-manager google-api-python-client")
+    print(f"Import error: {e}")
     sys.exit(1)
 
 
@@ -624,7 +626,8 @@ class GCPSecurityScanner:
     @property
     def sqladmin_client(self):
         if not self._sqladmin_client:
-            self._sqladmin_client = sqladmin_v1beta4.SqlInstancesServiceClient()
+            credentials, project = google_auth_default()
+            self._sqladmin_client = discovery.build('sqladmin', 'v1beta4', credentials=credentials, cache_discovery=False)
         return self._sqladmin_client
     
     @property
@@ -1110,90 +1113,88 @@ class GCPSecurityScanner:
         """Scan Cloud SQL instances for security issues"""
         findings = []
         try:
-            request = sqladmin_v1beta4.SqlInstancesListRequest(project=project)
-            instances = self.sqladmin_client.list(request=request)
+            # Use discovery API for SQL Admin
+            response = self.sqladmin_client.instances().list(project=project).execute()
+            instances = response.get('items', [])
             
-            for instance in instances.items or []:
-                resource_name = f"//sqladmin.googleapis.com/projects/{project}/instances/{instance.name}"
+            for instance in instances:
+                instance_name = instance.get('name', '')
+                resource_name = f"//sqladmin.googleapis.com/projects/{project}/instances/{instance_name}"
                 resource_type = "sqladmin.googleapis.com/Instance"
-                location = instance.region or instance.gce_zone or "global"
+                location = instance.get('region', instance.get('gceZone', 'global'))
+                
+                settings = instance.get('settings', {})
+                ip_config = settings.get('ipConfiguration', {})
                 
                 # SQL_PUBLIC_IP
-                if instance.settings and instance.settings.ip_configuration:
-                    ip_config = instance.settings.ip_configuration
-                    if ip_config.ipv4_enabled:
+                if ip_config.get('ipv4Enabled', False):
+                    findings.append(self._create_finding(
+                        "SQL_PUBLIC_IP", resource_name, resource_type, project, location
+                    ))
+                
+                # SQL_SSL_NOT_ENFORCED
+                if not ip_config.get('requireSsl', False):
+                    findings.append(self._create_finding(
+                        "SQL_SSL_NOT_ENFORCED", resource_name, resource_type, project, location
+                    ))
+                
+                # SQL_AUTHORIZED_NETWORKS_WIDE
+                auth_networks = ip_config.get('authorizedNetworks', [])
+                for network in auth_networks:
+                    if network.get('value') == "0.0.0.0/0":
                         findings.append(self._create_finding(
-                            "SQL_PUBLIC_IP", resource_name, resource_type, project, location
+                            "SQL_AUTHORIZED_NETWORKS_WIDE", resource_name, resource_type, project, location
                         ))
-                    
-                    # SQL_SSL_NOT_ENFORCED
-                    if not ip_config.require_ssl:
-                        findings.append(self._create_finding(
-                            "SQL_SSL_NOT_ENFORCED", resource_name, resource_type, project, location
-                        ))
-                    
-                    # SQL_AUTHORIZED_NETWORKS_WIDE
-                    if ip_config.authorized_networks:
-                        for network in ip_config.authorized_networks:
-                            if network.value == "0.0.0.0/0":
-                                findings.append(self._create_finding(
-                                    "SQL_AUTHORIZED_NETWORKS_WIDE", resource_name, resource_type, project, location
-                                ))
-                                break
+                        break
                 
                 # SQL_AUTO_BACKUP_DISABLED
-                if instance.settings and instance.settings.backup_configuration:
-                    if not instance.settings.backup_configuration.enabled:
-                        findings.append(self._create_finding(
-                            "SQL_AUTO_BACKUP_DISABLED", resource_name, resource_type, project, location
-                        ))
-                else:
+                backup_config = settings.get('backupConfiguration', {})
+                if not backup_config.get('enabled', False):
                     findings.append(self._create_finding(
                         "SQL_AUTO_BACKUP_DISABLED", resource_name, resource_type, project, location
                     ))
                 
                 # Database flags
-                if instance.settings and instance.settings.database_flags:
-                    flags = {f.name: f.value for f in instance.settings.database_flags}
-                    
-                    db_type = instance.database_version or ""
-                    
-                    # MySQL flags
-                    if "MYSQL" in db_type.upper():
-                        if flags.get("local_infile") == "on":
-                            findings.append(self._create_finding(
-                                "SQL_LOCAL_INFILE_ENABLED", resource_name, resource_type, project, location
-                            ))
-                    
-                    # PostgreSQL flags
-                    if "POSTGRES" in db_type.upper():
-                        if flags.get("log_checkpoints") == "off":
-                            findings.append(self._create_finding(
-                                "SQL_LOG_CHECKPOINTS_DISABLED", resource_name, resource_type, project, location
-                            ))
-                        if flags.get("log_connections") == "off":
-                            findings.append(self._create_finding(
-                                "SQL_LOG_CONNECTIONS_DISABLED", resource_name, resource_type, project, location
-                            ))
-                        if flags.get("log_disconnections") == "off":
-                            findings.append(self._create_finding(
-                                "SQL_LOG_DISCONNECTIONS_DISABLED", resource_name, resource_type, project, location
-                            ))
-                        if flags.get("log_lock_waits") == "off":
-                            findings.append(self._create_finding(
-                                "SQL_LOG_LOCK_WAITS_DISABLED", resource_name, resource_type, project, location
-                            ))
-                    
-                    # SQL Server flags
-                    if "SQLSERVER" in db_type.upper():
-                        if flags.get("cross db ownership chaining") == "on":
-                            findings.append(self._create_finding(
-                                "SQL_CROSS_DB_OWNERSHIP_ENABLED", resource_name, resource_type, project, location
-                            ))
-                        if flags.get("contained database authentication") == "on":
-                            findings.append(self._create_finding(
-                                "SQL_CONTAINED_DATABASE_AUTH", resource_name, resource_type, project, location
-                            ))
+                db_flags = settings.get('databaseFlags', [])
+                flags = {f.get('name'): f.get('value') for f in db_flags}
+                db_type = instance.get('databaseVersion', '')
+                
+                # MySQL flags
+                if "MYSQL" in db_type.upper():
+                    if flags.get("local_infile") == "on":
+                        findings.append(self._create_finding(
+                            "SQL_LOCAL_INFILE_ENABLED", resource_name, resource_type, project, location
+                        ))
+                
+                # PostgreSQL flags
+                if "POSTGRES" in db_type.upper():
+                    if flags.get("log_checkpoints") == "off":
+                        findings.append(self._create_finding(
+                            "SQL_LOG_CHECKPOINTS_DISABLED", resource_name, resource_type, project, location
+                        ))
+                    if flags.get("log_connections") == "off":
+                        findings.append(self._create_finding(
+                            "SQL_LOG_CONNECTIONS_DISABLED", resource_name, resource_type, project, location
+                        ))
+                    if flags.get("log_disconnections") == "off":
+                        findings.append(self._create_finding(
+                            "SQL_LOG_DISCONNECTIONS_DISABLED", resource_name, resource_type, project, location
+                        ))
+                    if flags.get("log_lock_waits") == "off":
+                        findings.append(self._create_finding(
+                            "SQL_LOG_LOCK_WAITS_DISABLED", resource_name, resource_type, project, location
+                        ))
+                
+                # SQL Server flags
+                if "SQLSERVER" in db_type.upper():
+                    if flags.get("cross db ownership chaining") == "on":
+                        findings.append(self._create_finding(
+                            "SQL_CROSS_DB_OWNERSHIP_ENABLED", resource_name, resource_type, project, location
+                        ))
+                    if flags.get("contained database authentication") == "on":
+                        findings.append(self._create_finding(
+                            "SQL_CONTAINED_DATABASE_AUTH", resource_name, resource_type, project, location
+                        ))
                 
                 self.progress.increment()
                 
