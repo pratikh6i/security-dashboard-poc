@@ -32,7 +32,22 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (mounted) {
             localStorage.setItem(THEME_STORAGE_KEY, theme);
-            document.documentElement.classList.toggle('dark', theme === 'dark');
+
+            // Apply theme class and styles
+            const root = document.documentElement;
+            if (theme === 'dark') {
+                root.classList.add('dark');
+                root.style.setProperty('--bg-color', '#030712');
+                root.style.setProperty('--text-color', '#f9fafb');
+                document.body.style.backgroundColor = '#030712';
+                document.body.style.color = '#f9fafb';
+            } else {
+                root.classList.remove('dark');
+                root.style.setProperty('--bg-color', '#f9fafb');
+                root.style.setProperty('--text-color', '#111827');
+                document.body.style.backgroundColor = '#f9fafb';
+                document.body.style.color = '#111827';
+            }
         }
     }, [theme, mounted]);
 
