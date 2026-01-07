@@ -1,11 +1,17 @@
-// SCC-Compatible Types for GCP Security Dashboard
+// Finding types aligned with Google SCC
+export type Severity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO';
+export type FindingState = 'ACTIVE' | 'INACTIVE' | 'MUTED';
+export type FindingStatus = 'FAIL' | 'PASS';
+export type Theme = 'light' | 'dark';
 
 export interface Finding {
+  id: string;
   finding_name: string;
   finding_category: string;
-  finding_severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO';
-  finding_state: 'ACTIVE' | 'INACTIVE';
-  finding_class: 'VULNERABILITY' | 'MISCONFIGURATION' | 'OBSERVATION';
+  finding_severity: Severity;
+  finding_state: FindingState;
+  finding_class: string;
+  status: FindingStatus;
   resource_name: string;
   resource_type: string;
   resource_project: string;
@@ -14,62 +20,64 @@ export interface Finding {
   remediation: string;
   compliance: string;
   scan_time: string;
-  [key: string]: string; // Index signature for dynamic access
+  service?: string;
 }
 
-export interface SecurityMetrics {
-  totalFindings: number;
-  bySeverity: {
-    CRITICAL: number;
-    HIGH: number;
-    MEDIUM: number;
-    LOW: number;
-    INFO: number;
-  };
-  byResourceType: Record<string, number>;
-  byCategory: Record<string, number>;
-  byProject: Record<string, number>;
-  byLocation: Record<string, number>;
-  securityScore: number;
-  topCategories: Array<{ name: string; count: number; severity: string }>;
-}
-
-export interface ChartData {
+export interface ScanResult {
+  id: string;
   name: string;
-  value: number;
-  color?: string;
-  [key: string]: string | number | undefined;
+  timestamp: string;
+  findings: Finding[];
+  summary: ScanSummary;
 }
 
-export interface ParseError {
-  type: 'warning' | 'error';
-  message: string;
-  row?: number;
+export interface ScanSummary {
+  total: number;
+  passed: number;
+  failed: number;
+  bySeverity: Record<Severity, number>;
+  byService: Record<string, number>;
+  byProject: Record<string, number>;
+  threatScore: number;
 }
 
-export interface CSVParseResult {
-  data: Finding[];
-  errors: ParseError[];
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  image?: string;
+  role: 'admin' | 'viewer';
+  organization?: string;
 }
 
-// Theme types
-export type Theme = 'light' | 'dark';
+export interface AIInsight {
+  id: string;
+  category: string;
+  severity: Severity;
+  title: string;
+  description: string;
+  findings: string[];
+  recommendations: string[];
+}
 
-// Severity colors
-export const SEVERITY_COLORS = {
-  CRITICAL: '#dc2626',
-  HIGH: '#ea580c',
-  MEDIUM: '#ca8a04',
-  LOW: '#2563eb',
-  INFO: '#6b7280'
-} as const;
+export interface LLMSettings {
+  provider: 'gemini' | 'openai';
+  apiKey: string;
+}
 
-// Resource type icons/colors
-export const RESOURCE_TYPE_COLORS: Record<string, string> = {
-  'Instance': '#4285f4',
-  'Cluster': '#34a853',
-  'Bucket': '#fbbc04',
-  'Firewall': '#ea4335',
-  'SqlInstance': '#673ab7',
-  'Project': '#9c27b0'
+export const SEVERITY_CONFIG: Record<Severity, { color: string; bgColor: string; weight: number }> = {
+  CRITICAL: { color: '#dc2626', bgColor: 'rgba(220, 38, 38, 0.1)', weight: 10 },
+  HIGH: { color: '#ea580c', bgColor: 'rgba(234, 88, 12, 0.1)', weight: 5 },
+  MEDIUM: { color: '#ca8a04', bgColor: 'rgba(202, 138, 4, 0.1)', weight: 2 },
+  LOW: { color: '#16a34a', bgColor: 'rgba(22, 163, 74, 0.1)', weight: 1 },
+  INFO: { color: '#2563eb', bgColor: 'rgba(37, 99, 235, 0.1)', weight: 0 },
+};
+
+export const SERVICE_ICONS: Record<string, string> = {
+  'compute': '💻',
+  'container': '📦',
+  'storage': '🗄️',
+  'network': '🌐',
+  'sql': '🛢️',
+  'iam': '🔐',
 };
