@@ -13,6 +13,8 @@ import {
     Shield,
     AlertTriangle,
     CheckCircle,
+    Terminal,
+    Copy,
 } from 'lucide-react';
 
 export default function ScansPage() {
@@ -95,6 +97,56 @@ export default function ScansPage() {
             {/* Upload Section */}
             <div className="card p-6">
                 <h2 className="text-lg font-semibold mb-4">Upload Scan Results</h2>
+
+                {/* Run Scanner Script - Always Visible */}
+                <div className="mb-6 p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">
+                            <Terminal className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">Run Scanner to Generate CSV</h3>
+                            <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
+                                Run this command in your terminal to scan your GCP project:
+                            </p>
+                            <div className="relative">
+                                <code className="block text-sm bg-gray-900 dark:bg-gray-950 text-green-400 p-3 rounded-lg font-mono overflow-x-auto">
+                                    python gcp_security_scanner.py --project YOUR_PROJECT_ID --output findings.csv
+                                </code>
+                                <button
+                                    onClick={() => {
+                                        navigator.clipboard.writeText('python gcp_security_scanner.py --project YOUR_PROJECT_ID --output findings.csv');
+                                        alert('Command copied to clipboard!');
+                                    }}
+                                    className="absolute top-2 right-2 p-1.5 rounded bg-gray-700 hover:bg-gray-600 text-gray-300"
+                                    title="Copy command"
+                                >
+                                    <Copy className="w-4 h-4" />
+                                </button>
+                            </div>
+                            <div className="flex items-center gap-4 mt-3">
+                                <a
+                                    href="https://github.com/pratikh6i/security-dashboard-poc/blob/main/gcp_security_scanner.py"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                                >
+                                    <Download className="w-4 h-4" />
+                                    Download Scanner Script
+                                </a>
+                                <span className="text-sm text-blue-600 dark:text-blue-400">|</span>
+                                <a
+                                    href="https://github.com/pratikh6i/security-dashboard-poc#readme"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                                >
+                                    View Documentation
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <div className="mb-4">
                     <label className="block text-sm font-medium mb-2">Scan Name (optional)</label>
@@ -222,23 +274,6 @@ export default function ScansPage() {
                         ))}
                     </div>
                 )}
-            </div>
-
-            {/* Scanner Download */}
-            <div className="card p-6">
-                <h2 className="text-lg font-semibold mb-4">Download Scanner</h2>
-                <p className="text-sm text-[var(--text-muted)] mb-4">
-                    Run the Python scanner on your GCP environment to generate a security findings CSV.
-                </p>
-                <a
-                    href="https://github.com/pratikh6i/security-dashboard-poc/blob/main/gcp_security_scanner.py"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-secondary inline-flex items-center gap-2"
-                >
-                    <Download className="w-4 h-4" />
-                    Download Scanner Script
-                </a>
             </div>
         </div>
     );
